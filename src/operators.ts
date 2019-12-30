@@ -37,26 +37,29 @@ export function from<T>(obj: Iterable<T> | Iterator<T> | AsyncIterable<T> | Read
         token,
         promise
       } = cancellation<any>();
-      (async () => {
-        const iterator: AsyncIterator<T> = obj[Symbol.asyncIterator]();
-        try {
-          while (true) {
-            const {done, value} = await Promise.race([iterator.next(), promise]);
-            if (done) {
-              complete();
-              break;
+
+      try {
+        return cancel;
+      } finally {
+        (async () => {
+          const iterator: AsyncIterator<T> = obj[Symbol.asyncIterator]();
+          try {
+            while (true) {
+              const {done, value} = await Promise.race([iterator.next(), promise]);
+              if (done) {
+                complete();
+                break;
+              }
+
+              next(value);
             }
-
-            next(value);
+          } catch (e) {
+            if (e !== token) {
+              error(e);
+            }
           }
-        } catch (e) {
-          if (e !== token) {
-            error(e);
-          }
-        }
-      })();
-
-      return cancel;
+        })();
+      }
     })
   }
 
@@ -74,20 +77,23 @@ export function concat<T>(...objs: ReadonlyArray<ObservableLike<T>>): Observable
       token,
       promise,
     } = cancellation();
-    (async () => {
-      try {
-        for (let obj of objs) {
-          await Promise.race([promise, from(obj).forEach((value: T) => next(value))]);
-        }
-      } catch (e) {
-        if (e !== token) {
-          error(e);
-        }
-      }
-      complete();
-    })();
 
-    return cancel;
+    try {
+      return cancel;
+    } finally {
+      (async () => {
+        try {
+          for (let obj of objs) {
+            await Promise.race([promise, from(obj).forEach((value: T) => next(value))]);
+          }
+        } catch (e) {
+          if (e !== token) {
+            error(e);
+          }
+        }
+        complete();
+      })();
+    }
   })
 }
 
@@ -104,19 +110,21 @@ export function race<T>(...objs: ReadonlyArray<ObservableLike<T>>): Observable<T
       promises.push(from(obj).forEach(next));
     }
 
-    (async () => {
-      try {
-        await Promise.all(promises);
-      } catch (e) {
-        if (e !== token) {
-          error(e);
+    try {
+      return cancel
+    } finally {
+      (async () => {
+        try {
+          await Promise.all(promises);
+        } catch (e) {
+          if (e !== token) {
+            error(e);
+          }
         }
-      }
 
-      complete();
-    })();
-
-    return cancel;
+        complete();
+      })();
+    }
   })
 }
 

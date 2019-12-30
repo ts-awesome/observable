@@ -1,0 +1,16 @@
+{
+  "name": "ts-observable",
+  "version": "0.0.0",
+  "description": "",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "test": "node test/index.js"
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "es-observable-tests": "^0.3.0",
+    "typescript": "^3.7.4"
+  }
+}

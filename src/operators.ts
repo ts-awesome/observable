@@ -1,5 +1,5 @@
 import {ObservableLike, Operator} from "./interfaces";
-import {ifCallable} from "./utils";
+import {cancellation, ifCallable} from "./utils";
 import {Observable} from "./observable";
 
 export type ElementType<T> = T extends any[] ? T[number] : T;
@@ -31,22 +31,32 @@ export function from<T>(obj: Iterable<T> | Iterator<T> | AsyncIterable<T> | Read
   }
 
   if (obj?.hasOwnProperty(Symbol.asyncIterator)) {
-    return new (ifCallable(this, Observable))(async ({next, complete, error}) => {
-      const iterator: AsyncIterator<T> = obj[Symbol.asyncIterator]();
-      while (true) {
+    return new (ifCallable(this, Observable))(({next, complete, error}) => {
+      const {
+        cancel,
+        token,
+        promise
+      } = cancellation<any>();
+      (async () => {
+        const iterator: AsyncIterator<T> = obj[Symbol.asyncIterator]();
         try {
-          const {done, value} = await iterator.next();
-          if (done) {
-            complete();
-            break;
-          }
+          while (true) {
+            const {done, value} = await Promise.race([iterator.next(), promise]);
+            if (done) {
+              complete();
+              break;
+            }
 
-          next(value);
+            next(value);
+          }
         } catch (e) {
-          error(e);
-          break;
+          if (e !== token) {
+            error(e);
+          }
         }
-      }
+      })();
+
+      return cancel;
     })
   }
 
@@ -58,28 +68,55 @@ export function from<T>(obj: Iterable<T> | Iterator<T> | AsyncIterable<T> | Read
 }
 
 export function concat<T>(...objs: ReadonlyArray<ObservableLike<T>>): Observable<T> {
-  return new Observable<T>(async ({next, complete, error}) => {
-    for(let obj of objs) {
-      await from(obj).forEach((value: T) => next(value));
-    }
-    complete();
+  return new Observable<T>(({next, complete, error}) => {
+    const {
+      cancel,
+      token,
+      promise,
+    } = cancellation();
+    (async () => {
+      try {
+        for (let obj of objs) {
+          await Promise.race([promise, from(obj).forEach((value: T) => next(value))]);
+        }
+      } catch (e) {
+        if (e !== token) {
+          error(e);
+        }
+      }
+      complete();
+    })();
+
+    return cancel;
   })
 }
 
 export function race<T>(...objs: ReadonlyArray<ObservableLike<T>>): Observable<T> {
-  return new Observable<T>(async ({next, complete, error}) => {
-    const promises = [];
+  return new Observable<T>(({next, complete, error}) => {
+    const {
+      cancel,
+      token,
+      promise,
+    } = cancellation();
+
+    const promises = [promise];
     for(let obj of objs) {
       promises.push(from(obj).forEach(next));
     }
 
-    try {
-      await Promise.all(promises);
-    } catch (e) {
-      error(e);
-    }
+    (async () => {
+      try {
+        await Promise.all(promises);
+      } catch (e) {
+        if (e !== token) {
+          error(e);
+        }
+      }
 
-    complete();
+      complete();
+    })();
+
+    return cancel;
   })
 }
 
@@ -89,12 +126,14 @@ export function map<T, U>(fn: (value: T) => U | Promise<U>): Operator<T, U> {
       next(await fn(value));
     }}))
 }
+
 export function filter<T>(fn: (value: T) => boolean | Promise<boolean>): Operator<T, T> {
   return (source: ObservableLike<T>) => new Observable(({complete, error, next}) =>
     from(source).subscribe({complete, error, async next(value: T) {
       if (await fn(value)) { next(value); }
     }}))
 }
+
 export function reduce<T, U>(fn: (acc: U | undefined, value: T) => U | Promise<U>): Operator<T, U | undefined> {
   return (source: ObservableLike<T>) => new Observable(({complete, error, next}) => {
     let acc: U | undefined;
@@ -106,6 +145,7 @@ export function reduce<T, U>(fn: (acc: U | undefined, value: T) => U | Promise<U
     }})
   })
 }
+
 export function flatMap<T>(): Operator<T, ElementType<T>> {
   return (source: ObservableLike<T>) => new Observable(({complete, error, next}) =>
     from(source).subscribe({error, complete, async next(value: T) {

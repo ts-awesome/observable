@@ -1,47 +1,12 @@
-import {
-  Observer,
-  OnComplete,
-  OnError,
-  OnNext,
-  SubscriberFunction,
-  Subscription,
-} from "./interfaces";
+import {Observer, OnComplete, OnError, OnNext, SubscriberFunction, Subscription,} from "./interfaces";
 import {ObservableSymbol} from "./symbols";
 import {methodOf, rethrows} from "./utils";
-import {of, from, concat, ElementType} from './operators';
-import {map, filter, reduce, flatMap} from './operators';
+import {ElementType, filter, flatMap, from, map, of, reduce} from './operators';
 
 export class Observable<T> {
 
   public static of = of;
   public static from = from;
-  public static concat = concat;
-
-  public forEach(fn: (value: T) => void): Promise<void> {
-    return map(fn)(this).toPromise();
-  }
-  public map<U>(fn: (value: T) => U | Promise<U>): Observable<U>{
-    return map(fn)(this);
-  }
-  public filter(fn: (value: T) => boolean | Promise<boolean>): Observable<T> {
-    return filter(fn)(this);
-  }
-  public reduce<U>(fn: (acc: U | undefined, value: T) => U | Promise<U>): Observable<U | undefined> {
-    return reduce(fn)(this);
-  }
-  public flatMap(): Observable<ElementType<T>> {
-    return flatMap<T>()(this);
-  }
-
-  public toPromise(): Promise<T | undefined> {
-    return new Promise((resolve, error) => {
-      let last: T | undefined;
-      this.subscribe({
-        next(x) { last = x },
-        complete() { resolve(last) },
-        error})
-    });
-  }
 
   public [ObservableSymbol]() {
     return this;
@@ -71,11 +36,6 @@ export class Observable<T> {
       unsubscribe() {
         closed = true;
         clean?.();
-      },
-      toPromise() {
-        return new Promise<T | undefined>((resolve, reject) => {
-
-        });
       }
     };
 
@@ -88,7 +48,6 @@ export class Observable<T> {
     let cleanup: any;
     let next: OnNext<T>;
     let error: OnError | undefined = undefined;
-    let complete: OnComplete;
     try {
       cleanup = this.subscriber({
         get closed() { return closed; },
@@ -97,12 +56,12 @@ export class Observable<T> {
         error: error_,
       });
     } catch (e) {
-      error = error ?? methodOf(obj, 'error') ?? rethrows;
+      let error = methodOf(obj, 'error') ?? rethrows;
       error?.(e);
     }
 
-    if (cleanup != null && !(cleanup instanceof Promise) && typeof cleanup !== 'function' && typeof cleanup.unsubscribe !== 'function') {
-      throw TypeError();
+    if (cleanup != null && typeof cleanup !== 'function' && typeof cleanup.unsubscribe !== 'function') {
+      throw TypeError(`Cleanup should be function or Subscription`);
     }
 
     let clean: (() => void) | undefined = () => {
@@ -131,7 +90,7 @@ export class Observable<T> {
 
       try {
         closed = true;
-        error = error ?? methodOf(obj, 'error');
+        const error = methodOf(obj, 'error');
         if (!error) throw e;
         return notify(() => error?.(e));
       } finally {
@@ -144,7 +103,7 @@ export class Observable<T> {
 
       try {
         closed = true;
-        complete = complete ?? methodOf(obj, 'complete');
+        const complete = methodOf(obj, 'complete');
         return notify(() => complete?.(x));
       } finally {
         clean?.();
@@ -163,6 +122,34 @@ export class Observable<T> {
         }
       }
     }
+  }
+
+  /* Extension */
+
+  public forEach(fn: (value: T) => void): Promise<void> {
+    return map(fn)(this).toPromise();
+  }
+  public map<U>(fn: (value: T) => U | Promise<U>): Observable<U>{
+    return map(fn)(this);
+  }
+  public filter(fn: (value: T) => boolean | Promise<boolean>): Observable<T> {
+    return filter(fn)(this);
+  }
+  public reduce<U>(fn: (acc: U | undefined, value: T) => U | Promise<U>): Observable<U | undefined> {
+    return reduce(fn)(this);
+  }
+  public flatMap(): Observable<ElementType<T>> {
+    return flatMap<T>()(this);
+  }
+
+  public toPromise(): Promise<T | undefined> {
+    return new Promise((resolve, error) => {
+      let last: T | undefined;
+      this.subscribe({
+        next(x) { last = x },
+        complete() { resolve(last) },
+        error})
+    });
   }
 }
 

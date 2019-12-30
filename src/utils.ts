@@ -18,3 +18,19 @@ export function rethrows(x: any): void {
 export function ifCallable<T>(obj: any, def: T): T {
   return typeof obj === 'function' ? obj : def;
 }
+
+export function cancellation<T>() : {
+  cancel: () => void,
+  token: symbol,
+  promise: Promise<T>,
+} {
+  let cancel: any = undefined;
+  const token = Symbol() as any;
+  const promise = new Promise<T>(reject => { cancel = () => reject(token) });
+
+  return {
+    cancel,
+    token,
+    promise,
+  }
+}

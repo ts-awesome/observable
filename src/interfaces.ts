@@ -1,7 +1,7 @@
 import {Observable} from "./observable";
 
 export interface SubscriberFunction<T> {
-  (observer: SubscriptionObserver<T>) : void|(() => void)|Subscription|Promise<void>;
+  (observer: SubscriptionObserver<T>) : void|(() => void)|Subscription;
 }
 
 export interface OnNext<T> {

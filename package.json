@@ -1,5 +1,5 @@
 {
-  "name": "ts-observable",
+  "name": "@viatsyshyn/ts-observable",
   "version": "0.0.0",
   "description": "",
   "main": "dist/index.js",

@@ -20,7 +20,7 @@ export function from<T>(obj: Iterable<T> | Iterator<T> | AsyncIterable<T> | Read
 
   const observable = obj?.[Symbol.observable];
   if (observable != null) {
-    const value = observable?.();
+    const value = observable?.call(obj);
 
     if (typeof value === 'function') {
       return value();

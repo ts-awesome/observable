@@ -36,5 +36,5 @@ export function cancellation<T>() : {
 }
 
 export function isOf(obj: any, constructor: Function): boolean {
-  return obj?.constructor === constructor;
+  return obj?.constructor === constructor || obj instanceof constructor;
 }

@@ -34,3 +34,7 @@ export function cancellation<T>() : {
     promise,
   }
 }
+
+export function isOf(obj: any, constructor: Function): boolean {
+  return obj?.constructor === constructor;
+}

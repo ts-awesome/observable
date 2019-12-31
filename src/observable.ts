@@ -1,7 +1,7 @@
-import {Observer, OnComplete, OnError, OnNext, SubscriberFunction, Subscription,} from "./interfaces";
+import {Observer, OnComplete, OnError, OnNext, Operator, SubscriberFunction, Subscription,} from "./interfaces";
 import {ObservableSymbol} from "./symbols";
 import {methodOf, rethrows} from "./utils";
-import {ElementType, filter, flatMap, from, map, of, reduce} from './operators';
+import {from, map, of, pipe} from './operators';
 
 export class Observable<T> {
 
@@ -19,15 +19,15 @@ export class Observable<T> {
   }
 
   public subscribe(observer: Observer<T>): Subscription;
-  public subscribe(onNext: OnNext<T>, onError?: OnError, onComplete?: OnComplete): Subscription;
-  public subscribe(obj: any): Subscription {
-    if (typeof obj === 'function') {
+  public subscribe(onNext?: OnNext<T>, onError?: OnError, onComplete?: OnComplete): Subscription;
+  public subscribe(obj?: any): Subscription {
+    if (typeof obj === 'function' || arguments.length > 1) {
       const [next, error, complete] = [].slice.call(arguments);
       obj = { next, error, complete };
     }
 
     if (typeof obj !== 'object') {
-      throw TypeError();
+      throw TypeError(`Observer or onNext expected`);
     }
 
     let closed = false;
@@ -38,6 +38,7 @@ export class Observable<T> {
         clean?.();
       }
     };
+    Object.freeze(subscription);
 
     obj.start?.(subscription);
 
@@ -47,16 +48,17 @@ export class Observable<T> {
 
     let cleanup: any;
     let next: OnNext<T>;
-    let error: OnError | undefined = undefined;
     try {
-      cleanup = this.subscriber({
+      const observer = {
         get closed() { return closed; },
         complete: complete_,
         next: next_,
         error: error_,
-      });
+      };
+      Object.freeze(observer);
+      cleanup = this.subscriber(observer);
     } catch (e) {
-      let error = methodOf(obj, 'error') ?? rethrows;
+      const error = methodOf(obj, 'error') ?? rethrows;
       error?.(e);
     }
 
@@ -126,20 +128,27 @@ export class Observable<T> {
 
   /* Extension */
 
+  /* tslint:disable:max-line-length */
+  pipe(): Observable<T>;
+  pipe<A>(op1: Operator<T, A>): Observable<A>;
+  pipe<A, B>(op1: Operator<T, A>, op2: Operator<A, B>): Observable<B>;
+  pipe<A, B, C>(op1: Operator<T, A>, op2: Operator<A, B>, op3: Operator<B, C>): Observable<C>;
+  pipe<A, B, C, D>(op1: Operator<T, A>, op2: Operator<A, B>, op3: Operator<B, C>, op4: Operator<C, D>): Observable<D>;
+  pipe<A, B, C, D, E>(op1: Operator<T, A>, op2: Operator<A, B>, op3: Operator<B, C>, op4: Operator<C, D>, op5: Operator<D, E>): Observable<E>;
+  pipe<A, B, C, D, E, F>(op1: Operator<T, A>, op2: Operator<A, B>, op3: Operator<B, C>, op4: Operator<C, D>, op5: Operator<D, E>, op6: Operator<E, F>): Observable<F>;
+  pipe<A, B, C, D, E, F, G>(op1: Operator<T, A>, op2: Operator<A, B>, op3: Operator<B, C>, op4: Operator<C, D>, op5: Operator<D, E>, op6: Operator<E, F>, op7: Operator<F, G>): Observable<G>;
+  pipe<A, B, C, D, E, F, G, H>(op1: Operator<T, A>, op2: Operator<A, B>, op3: Operator<B, C>, op4: Operator<C, D>, op5: Operator<D, E>, op6: Operator<E, F>, op7: Operator<F, G>, op8: Operator<G, H>): Observable<H>;
+  pipe<A, B, C, D, E, F, G, H, I>(op1: Operator<T, A>, op2: Operator<A, B>, op3: Operator<B, C>, op4: Operator<C, D>, op5: Operator<D, E>, op6: Operator<E, F>, op7: Operator<F, G>, op8: Operator<G, H>, op9: Operator<H, I>): Observable<I>;
+  pipe<A, B, C, D, E, F, G, H, I>(op1: Operator<T, A>, op2: Operator<A, B>, op3: Operator<B, C>, op4: Operator<C, D>, op5: Operator<D, E>, op6: Operator<E, F>, op7: Operator<F, G>, op8: Operator<G, H>, op9: Operator<H, I>, ...operations: Operator<any, any>[]): Observable<unknown>;
+  /* tslint:enable:max-line-length */
+
+  public pipe(...ops: Operator<any, any>[]): Observable<any> {
+    // @ts-ignore
+    return pipe(...ops)(this);
+  }
+
   public forEach(fn: (value: T) => void): Promise<void> {
     return map(fn)(this).toPromise();
-  }
-  public map<U>(fn: (value: T) => U | Promise<U>): Observable<U>{
-    return map(fn)(this);
-  }
-  public filter(fn: (value: T) => boolean | Promise<boolean>): Observable<T> {
-    return filter(fn)(this);
-  }
-  public reduce<U>(fn: (acc: U | undefined, value: T) => U | Promise<U>): Observable<U | undefined> {
-    return reduce(fn)(this);
-  }
-  public flatMap(): Observable<ElementType<T>> {
-    return flatMap<T>()(this);
   }
 
   public toPromise(): Promise<T | undefined> {
@@ -148,7 +157,8 @@ export class Observable<T> {
       this.subscribe({
         next(x) { last = x },
         complete() { resolve(last) },
-        error})
+        error,
+      });
     });
   }
 }

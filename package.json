@@ -5,12 +5,14 @@
   "main": "dist/index.js",
   "scripts": {
     "build": "tsc",
-    "test": "node test/index.js"
+    "es:test": "node test/index.js",
+    "test": "jest"
   },
   "author": "",
   "license": "ISC",
   "devDependencies": {
     "es-observable-tests": "^0.3.0",
+    "jest": "^24.9.0",
     "typescript": "^3.7.4"
   }
 }

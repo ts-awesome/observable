@@ -1,11 +1,11 @@
-const {of, map, filter, reduce, flatMap} = require('../dist/index');
+const {of, map, filter, reduce, flatten} = require('../dist/index');
 
 test('pipe operator', async () => {
   const ob = of(1, 2, 3)
     .pipe(
       filter(x => x > 1),
       map(x => [x, x * 2, x * 3]),
-      flatMap(),
+      flatten(),
       reduce((acc, x) => [...(acc || []), x])
     );
   const r = [];

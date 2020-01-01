@@ -1,9 +1,19 @@
-import {Observer, OnComplete, OnError, OnNext, Operator, SubscriberFunction, Subscription,} from "./interfaces";
+import {
+  Subscribable,
+  Observer,
+  OnComplete,
+  OnError,
+  OnNext,
+  Operator,
+  SubscriberFunction,
+  Subscription,
+  SubscriptionObserver
+} from "./interfaces";
 import {ObservableSymbol} from "./symbols";
 import {methodOf, rethrows} from "./utils";
-import {from, map, of, pipe} from './operators';
+import {map, pipe, from, of} from "./operators";
 
-export class Observable<T> {
+export class Observable<T> implements Subscribable<T>{
 
   public static of = of;
   public static from = from;
@@ -31,14 +41,13 @@ export class Observable<T> {
     }
 
     let closed = false;
-    const subscription = {
+    const subscription = Object.freeze<Subscription>({
       get closed() { return closed },
       unsubscribe() {
         closed = true;
         clean?.();
       }
-    };
-    Object.freeze(subscription);
+    });
 
     obj.start?.(subscription);
 
@@ -49,14 +58,12 @@ export class Observable<T> {
     let cleanup: any;
     let next: OnNext<T>;
     try {
-      const observer = {
+      cleanup = this.subscriber(Object.freeze<SubscriptionObserver<T>>({
         get closed() { return closed; },
         complete: complete_,
         next: next_,
         error: error_,
-      };
-      Object.freeze(observer);
-      cleanup = this.subscriber(observer);
+      }));
     } catch (e) {
       const error = methodOf(obj, 'error') ?? rethrows;
       error?.(e);
@@ -102,7 +109,6 @@ export class Observable<T> {
 
     function complete_(x?: any): any {
       if (closed) return undefined;
-
       try {
         closed = true;
         const complete = methodOf(obj, 'complete');
@@ -129,20 +135,20 @@ export class Observable<T> {
   /* Extension */
 
   /* tslint:disable:max-line-length */
-  pipe(): Observable<T>;
-  pipe<A>(op1: Operator<T, A>): Observable<A>;
-  pipe<A, B>(op1: Operator<T, A>, op2: Operator<A, B>): Observable<B>;
-  pipe<A, B, C>(op1: Operator<T, A>, op2: Operator<A, B>, op3: Operator<B, C>): Observable<C>;
-  pipe<A, B, C, D>(op1: Operator<T, A>, op2: Operator<A, B>, op3: Operator<B, C>, op4: Operator<C, D>): Observable<D>;
-  pipe<A, B, C, D, E>(op1: Operator<T, A>, op2: Operator<A, B>, op3: Operator<B, C>, op4: Operator<C, D>, op5: Operator<D, E>): Observable<E>;
-  pipe<A, B, C, D, E, F>(op1: Operator<T, A>, op2: Operator<A, B>, op3: Operator<B, C>, op4: Operator<C, D>, op5: Operator<D, E>, op6: Operator<E, F>): Observable<F>;
-  pipe<A, B, C, D, E, F, G>(op1: Operator<T, A>, op2: Operator<A, B>, op3: Operator<B, C>, op4: Operator<C, D>, op5: Operator<D, E>, op6: Operator<E, F>, op7: Operator<F, G>): Observable<G>;
-  pipe<A, B, C, D, E, F, G, H>(op1: Operator<T, A>, op2: Operator<A, B>, op3: Operator<B, C>, op4: Operator<C, D>, op5: Operator<D, E>, op6: Operator<E, F>, op7: Operator<F, G>, op8: Operator<G, H>): Observable<H>;
-  pipe<A, B, C, D, E, F, G, H, I>(op1: Operator<T, A>, op2: Operator<A, B>, op3: Operator<B, C>, op4: Operator<C, D>, op5: Operator<D, E>, op6: Operator<E, F>, op7: Operator<F, G>, op8: Operator<G, H>, op9: Operator<H, I>): Observable<I>;
-  pipe<A, B, C, D, E, F, G, H, I>(op1: Operator<T, A>, op2: Operator<A, B>, op3: Operator<B, C>, op4: Operator<C, D>, op5: Operator<D, E>, op6: Operator<E, F>, op7: Operator<F, G>, op8: Operator<G, H>, op9: Operator<H, I>, ...operations: Operator<any, any>[]): Observable<unknown>;
+  public pipe(): Observable<T>;
+  public pipe<A>(op1: Operator<T, A>): Observable<A>;
+  public pipe<A, B>(op1: Operator<T, A>, op2: Operator<A, B>): Observable<B>;
+  public pipe<A, B, C>(op1: Operator<T, A>, op2: Operator<A, B>, op3: Operator<B, C>): Observable<C>;
+  public pipe<A, B, C, D>(op1: Operator<T, A>, op2: Operator<A, B>, op3: Operator<B, C>, op4: Operator<C, D>): Observable<D>;
+  public pipe<A, B, C, D, E>(op1: Operator<T, A>, op2: Operator<A, B>, op3: Operator<B, C>, op4: Operator<C, D>, op5: Operator<D, E>): Observable<E>;
+  public pipe<A, B, C, D, E, F>(op1: Operator<T, A>, op2: Operator<A, B>, op3: Operator<B, C>, op4: Operator<C, D>, op5: Operator<D, E>, op6: Operator<E, F>): Observable<F>;
+  public pipe<A, B, C, D, E, F, G>(op1: Operator<T, A>, op2: Operator<A, B>, op3: Operator<B, C>, op4: Operator<C, D>, op5: Operator<D, E>, op6: Operator<E, F>, op7: Operator<F, G>): Observable<G>;
+  public pipe<A, B, C, D, E, F, G, H>(op1: Operator<T, A>, op2: Operator<A, B>, op3: Operator<B, C>, op4: Operator<C, D>, op5: Operator<D, E>, op6: Operator<E, F>, op7: Operator<F, G>, op8: Operator<G, H>): Observable<H>;
+  public pipe<A, B, C, D, E, F, G, H, I>(op1: Operator<T, A>, op2: Operator<A, B>, op3: Operator<B, C>, op4: Operator<C, D>, op5: Operator<D, E>, op6: Operator<E, F>, op7: Operator<F, G>, op8: Operator<G, H>, op9: Operator<H, I>): Observable<I>;
+  public pipe<A, B, C, D, E, F, G, H, I>(op1: Operator<T, A>, op2: Operator<A, B>, op3: Operator<B, C>, op4: Operator<C, D>, op5: Operator<D, E>, op6: Operator<E, F>, op7: Operator<F, G>, op8: Operator<G, H>, op9: Operator<H, I>, ...operations: Operator<any, any>[]): Observable<unknown>;
   /* tslint:enable:max-line-length */
 
-  public pipe(...ops: Operator<any, any>[]): Observable<any> {
+  public pipe(...ops: ReadonlyArray<Operator<any, any>>): Observable<any> {
     // @ts-ignore
     return pipe(...ops)(this);
   }
@@ -163,18 +169,11 @@ export class Observable<T> {
   }
 }
 
-Object.defineProperty(Observable.prototype, Symbol.observable, {
-  enumerable: false
-});
+Object.defineProperty(Observable.prototype, Symbol.observable, {enumerable: false});
+Object.defineProperty(Observable.prototype, 'subscribe', {enumerable: false});
+Object.defineProperty(Observable.prototype, 'pipe', {enumerable: false});
+Object.defineProperty(Observable.prototype, 'forEach', {enumerable: false});
+Object.defineProperty(Observable.prototype, 'toPromise', {enumerable: false});
 
-Object.defineProperty(Observable.prototype, 'subscribe', {
-  enumerable: false
-});
-
-Object.defineProperty(Observable, 'of', {
-  enumerable: false
-});
-
-Object.defineProperty(Observable, 'from', {
-  enumerable: false
-});
+Object.defineProperty(Observable, 'of', {enumerable: false});
+Object.defineProperty(Observable, 'from', {enumerable: false});

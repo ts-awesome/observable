@@ -40,7 +40,12 @@ export interface ObservableProvider<T> {
   [Symbol.observable](): Observable<T>;
 }
 
-export type ObservableLike<T> = Observable<T> | ObservableProvider<T>;
+export interface Subscribable<T> {
+  subscribe(observer: Observer<T>): Subscription;
+  subscribe(onNext?: OnNext<T>, onError?: OnError, onComplete?: OnComplete): Subscription;
+}
+
+export type ObservableLike<T> = Observable<T> | ObservableProvider<T> | Subscribable<T>;
 
 export interface Operator<T, U> {
   (value: ObservableLike<T>): Observable<U>;

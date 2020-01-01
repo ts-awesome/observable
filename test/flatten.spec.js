@@ -1,8 +1,8 @@
-const {flatMap, of} = require('../dist/index');
+const {flatten, of} = require('../dist/index');
 
-test('flatMap operator', async () => {
+test('flatten operator', async () => {
   const ob = of([1], [2, 3], [4,5,6]);
-  const op = flatMap();
+  const op = flatten();
   const r = [];
 
   await op(ob).forEach(x => r.push(x));

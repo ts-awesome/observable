@@ -9,3 +9,7 @@ export * from "./operators/flatten";
 export * from "./operators/pipe";
 export * from "./operators/from";
 export * from "./operators/of";
+export * from "./operators/from-promise";
+export * from "./operators/from-async-iterable";
+export * from "./operators/fulfill";
+export * from "./operators/observe";

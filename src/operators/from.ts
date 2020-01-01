@@ -1,6 +1,7 @@
 import {ObservableLike, Subscribable} from "../interfaces";
 import {Observable} from "../observable";
 import {ifCallable, isOf, methodOf} from "../utils";
+import {fromAsyncIterable} from "./from-async-iterable";
 
 export function from<T>(obj: ObservableLike<T> | Iterable<T> | AsyncIterable<T>): Observable<T> {
   const constructor = ifCallable(this, Observable);
@@ -39,40 +40,14 @@ export function from<T>(obj: ObservableLike<T> | Iterable<T> | AsyncIterable<T>)
   }
 
   if (obj?.[Symbol.iterator] || Array.isArray(obj) || typeof (<any>obj).next === 'function') {
-    return fromIterable.call(this, obj);
+    return new constructor<T>(({next, complete}) => {
+      for (let value of obj) {
+        next(value);
+      }
+      complete();
+    });
   }
 
   throw TypeError('Expected ObservableLike, Iterable or AsyncIterable');
 }
 
-export function fromIterable<T>(iterable: Iterable<T>): Observable<T> {
-  const constructor = ifCallable(this, Observable);
-  return new constructor<T>(({next, complete}) => {
-    for (let value of iterable) {
-      next(value);
-    }
-    complete();
-  });
-}
-
-export function fromAsyncIterable<T>(iterable: AsyncIterable<T>): Observable<T> {
-  const constructor = ifCallable(this, Observable);
-  return new constructor<T>(({next, complete, error}) => {
-    let cancelled = false;
-
-    try {
-      return () => {cancelled = true};
-    } finally {
-      (async () => {
-        for await (let value of iterable) {
-          if (cancelled) {
-            break;
-          }
-          next(value);
-        }
-
-        complete();
-      })();
-    }
-  });
-}

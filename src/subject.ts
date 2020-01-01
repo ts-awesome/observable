@@ -8,6 +8,10 @@ export class Subject<T> implements Subscribable<T>, Observer<T> {
   protected subscribers = new Set<SubscriptionObserver<T>>();
 
   constructor(protected value?: T) {
+    this.subscribe = this.subscribe.bind(this);
+    this.next = this.next.bind(this);
+    this.error = this.error.bind(this);
+    this.complete = this.complete.bind(this);
   }
 
   public subscribe(observer: Observer<T>): Subscription;

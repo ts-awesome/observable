@@ -69,8 +69,8 @@ export class Subject<T> implements Subscribable<T>, Observer<T> {
       return subscription;
     }
 
-    if (this.behave) {
-      observer.next(this.value!);
+    if (this.behave && this.value !== undefined) {
+      observer.next(this.value);
     }
 
     let next: OnNext<T> | undefined = undefined;
@@ -102,7 +102,7 @@ export class Subject<T> implements Subscribable<T>, Observer<T> {
 
   next(value: T) {
     if (this.closed) return;
-    if (this.value !== void 0) {
+    if (this.behave) {
       this.value = value;
     }
     this.subscribers.forEach(sub => sub.next(value));

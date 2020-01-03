@@ -1,4 +1,12 @@
-import {Observer, OnComplete, OnError, OnNext, Subscribable, Subscription, SubscriptionObserver} from "./interfaces";
+import {
+  Observer,
+  OnComplete,
+  OnError,
+  OnNext,
+  Subscribable,
+  Subscription,
+  SubscriptionObserver
+} from "./interfaces";
 import {methodOf, rethrows} from "./utils";
 
 
@@ -7,7 +15,19 @@ export class Subject<T> implements Subscribable<T>, Observer<T> {
   protected closed = false;
   protected subscribers = new Set<SubscriptionObserver<T>>();
 
-  constructor(protected value?: T) {
+  private readonly behave: boolean;
+  protected value: T | undefined;
+
+  public get last(): T | undefined {
+    return this.value;
+  }
+
+  constructor(value?: T) {
+    this.behave = arguments.length > 0;
+    if (this.behave) {
+      this.value = value!;
+    }
+
     this.subscribe = this.subscribe.bind(this);
     this.next = this.next.bind(this);
     this.error = this.error.bind(this);
@@ -49,8 +69,8 @@ export class Subject<T> implements Subscribable<T>, Observer<T> {
       return subscription;
     }
 
-    if (this.value !== void 0) {
-      observer.next(this.value);
+    if (this.behave) {
+      observer.next(this.value!);
     }
 
     let next: OnNext<T> | undefined = undefined;

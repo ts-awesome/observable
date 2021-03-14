@@ -25,7 +25,7 @@ export class Subject<T> implements Subscribable<T>, Observer<T> {
   constructor(value?: T) {
     this.behave = arguments.length > 0;
     if (this.behave) {
-      this.value = value!;
+      this.value = value;
     }
 
     this.subscribe = this.subscribe.bind(this);
@@ -36,8 +36,9 @@ export class Subject<T> implements Subscribable<T>, Observer<T> {
 
   public subscribe(observer: Observer<T>): Subscription;
   public subscribe(onNext?: OnNext<T>, onError?: OnError, onComplete?: OnComplete): Subscription;
-  public subscribe(obj?: any): Subscription {
+  public subscribe(obj: Observer<T> | OnNext<T> | undefined): Subscription {
     if (typeof obj === 'function' || arguments.length > 1) {
+      // eslint-disable-next-line prefer-rest-params
       const [next, error, complete] = [].slice.call(arguments);
       obj = { next, error, complete };
     }
@@ -77,17 +78,17 @@ export class Subject<T> implements Subscribable<T>, Observer<T> {
     return subscription;
 
     function next_(value: T, ...args: any[]): any {
-      next = next ?? methodOf(obj, 'next');
+      next = next ?? methodOf(obj as Observer<T>, 'next');
       return notify(() => next?.(value, ...args));
     }
 
     function error_(e: any): any {
-      const error = methodOf(obj, 'error') ?? rethrows;
+      const error = methodOf(obj as Observer<T>, 'error') ?? rethrows;
       return notify(() => error?.(e));
     }
 
     function complete_(x?: any): any {
-      const complete = methodOf(obj, 'complete');
+      const complete = methodOf(obj as Observer<T>, 'complete');
       return notify(() => complete?.(x));
     }
 
@@ -100,7 +101,7 @@ export class Subject<T> implements Subscribable<T>, Observer<T> {
     }
   }
 
-  next(value: T) {
+  next(value: T): void {
     if (this.closed) return;
     if (this.behave) {
       this.value = value;
@@ -108,13 +109,13 @@ export class Subject<T> implements Subscribable<T>, Observer<T> {
     this.subscribers.forEach(sub => sub.next(value));
   }
 
-  error(error: any) {
+  error(error: unknown): void {
     if (this.closed) return;
     this.closed = true;
     this.subscribers.forEach(sub => sub.error(error));
   }
 
-  complete() {
+  complete(): void {
     if (this.closed) return;
     this.closed = true;
     this.subscribers.forEach(sub => sub.complete());

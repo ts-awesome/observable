@@ -2,8 +2,8 @@ import {Observable} from "../observable";
 import {ifCallable} from "../utils";
 
 export function fromAsyncIterable<T>(iterable: AsyncIterable<T>): Observable<T> {
-  const constructor = ifCallable(this, Observable);
-  return new constructor<T>(({next, complete, error}) => {
+  const constructor = ifCallable<typeof Observable>(this, Observable);
+  return new constructor<T>(({next, complete}) => {
     let cancelled = false;
 
     try {
@@ -12,7 +12,7 @@ export function fromAsyncIterable<T>(iterable: AsyncIterable<T>): Observable<T> 
       };
     } finally {
       (async () => {
-        for await (let value of iterable) {
+        for await (const value of iterable) {
           if (cancelled) {
             break;
           }

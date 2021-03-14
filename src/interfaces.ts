@@ -25,7 +25,7 @@ export interface Observer<T> {
   start?(subscription: Subscription): void;
   next?(value: T): void;
   error?(error: any): void;
-  complete?(): void;
+  complete?(msg?: any): void;
 }
 
 export interface SubscriptionObserver<T> {

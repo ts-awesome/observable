@@ -18,7 +18,7 @@ export class Observable<T> implements Subscribable<T>{
   public static of = of;
   public static from = from;
 
-  public [ObservableSymbol]() {
+  public [ObservableSymbol](): this {
     return this;
   }
 
@@ -30,8 +30,9 @@ export class Observable<T> implements Subscribable<T>{
 
   public subscribe(observer: Observer<T>): Subscription;
   public subscribe(onNext?: OnNext<T>, onError?: OnError, onComplete?: OnComplete): Subscription;
-  public subscribe(obj?: any): Subscription {
+  public subscribe(obj?: OnNext<T> | Observer<T>): Subscription {
     if (typeof obj === 'function' || arguments.length > 1) {
+      // eslint-disable-next-line prefer-rest-params
       const [next, error, complete] = [].slice.call(arguments);
       obj = { next, error, complete };
     }
@@ -90,7 +91,7 @@ export class Observable<T> implements Subscribable<T>{
 
     function next_(value: T, ...args: any[]): any {
       if (closed) return undefined;
-      next = next ?? methodOf(obj, 'next');
+      next = next ?? methodOf(obj as Observer<T>, 'next');
       return notify(() => next?.(value, ...args));
     }
 
@@ -99,7 +100,7 @@ export class Observable<T> implements Subscribable<T>{
 
       try {
         closed = true;
-        const error = methodOf(obj, 'error');
+        const error = methodOf(obj as Observer<T>, 'error');
         if (!error) throw e;
         return notify(() => error?.(e));
       } finally {
@@ -111,7 +112,7 @@ export class Observable<T> implements Subscribable<T>{
       if (closed) return undefined;
       try {
         closed = true;
-        const complete = methodOf(obj, 'complete');
+        const complete = methodOf(obj as Observer<T>, 'complete');
         return notify(() => complete?.(x));
       } finally {
         clean?.();
@@ -149,8 +150,8 @@ export class Observable<T> implements Subscribable<T>{
   /* tslint:enable:max-line-length */
 
   public pipe(...ops: ReadonlyArray<Operator<any, any>>): Observable<any> {
-    // @ts-ignore
-    return pipe(...ops)(this);
+    // eslint-disable-next-line prefer-spread
+    return pipe.apply(null, ops)(this);
   }
 
   public forEach(fn: (value: T) => void): Promise<void> {

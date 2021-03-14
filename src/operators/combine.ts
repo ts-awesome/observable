@@ -4,7 +4,7 @@ import {ifCallable} from "../utils";
 import {from} from "./from";
 
 export function combine(...objs: ReadonlyArray<ObservableLike<any>>): Observable<Array<any>> {
-  const constructor = ifCallable(this, Observable);
+  const constructor = ifCallable<typeof Observable>(this, Observable);
   return new constructor<Array<any>>(({next, complete, error}) => {
     const result = Array(objs.length);
     const subs = objs.map((obj, index) =>

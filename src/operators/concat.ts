@@ -3,7 +3,7 @@ import {Observable} from "../observable";
 import {ifCallable} from "../utils";
 
 export function concat<T>(...objs: ReadonlyArray<ObservableLike<T>>): Observable<T> {
-  const constructor = ifCallable(this, Observable);
+  const constructor = ifCallable<typeof Observable>(this, Observable);
   return new constructor<T>(({next, complete, error}) => {
     const iterator = objs[Symbol.iterator]();
     let current = begin();

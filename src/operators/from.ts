@@ -4,7 +4,7 @@ import {ifCallable, isOf, methodOf} from "../utils";
 import {fromAsyncIterable} from "./from-async-iterable";
 
 export function from<T>(obj: ObservableLike<T> | Iterable<T> | AsyncIterable<T>): Observable<T> {
-  const constructor = ifCallable(this, Observable);
+  const constructor = ifCallable<typeof Observable>(this, Observable);
 
   if (isOf(obj, constructor)) {
     return obj as any;
@@ -39,9 +39,9 @@ export function from<T>(obj: ObservableLike<T> | Iterable<T> | AsyncIterable<T>)
     return fromAsyncIterable.call(this, asyncIterator)
   }
 
-  if (obj?.[Symbol.iterator] || Array.isArray(obj) || typeof (<any>obj).next === 'function') {
+  if (isIterable(obj)) {
     return new constructor<T>(({next, complete}) => {
-      for (let value of obj) {
+      for (const value of obj) {
         next(value);
       }
       complete();
@@ -51,3 +51,14 @@ export function from<T>(obj: ObservableLike<T> | Iterable<T> | AsyncIterable<T>)
   throw TypeError('Expected ObservableLike, Iterable or AsyncIterable');
 }
 
+function isIterable<T=any>(x: unknown): x is Iterable<T> {
+  return Array.isArray(x)
+    || (typeof x === 'object' && x !== null
+      && (x?.[Symbol.iterator] != null
+        || (hasOwnProperty(x, 'next') && typeof x.next === 'function')));
+}
+
+// eslint-disable-next-line @typescript-eslint/ban-types
+function hasOwnProperty<X extends Object, Y extends PropertyKey>(obj: X, prop: Y): obj is X & Record<Y, unknown> {
+  return Object.prototype.hasOwnProperty.call(obj, prop);
+}

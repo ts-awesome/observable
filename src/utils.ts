@@ -11,14 +11,14 @@ export function methodOf<T, K extends keyof T>(obj: T, key: K): T[K] | undefined
   return value.bind(obj);
 }
 
-export function rethrows(x: any): void {
+export function rethrows(x: unknown): void {
   throw x;
 }
 
-export function ifCallable<T>(obj: any, def: T): T {
+export function ifCallable<T>(obj: T, def: T): T {
   return typeof obj === 'function' ? obj : def;
 }
 
-export function isOf(obj: any, constructor: Function): boolean {
+export function isOf(obj: {constructor: unknown}, constructor: new (...args: any[]) => any): boolean {
   return obj?.constructor === constructor || obj instanceof constructor;
 }

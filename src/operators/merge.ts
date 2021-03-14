@@ -4,7 +4,7 @@ import {ifCallable} from "../utils";
 import {from} from "./from";
 
 export function merge<T>(...objs: ReadonlyArray<ObservableLike<T>>): Observable<T> {
-  const constructor = ifCallable(this, Observable);
+  const constructor = ifCallable<typeof Observable>(this, Observable);
   return new constructor<T>(({next, complete, error}) => {
     let pending = objs.length;
     const subscriber = Object.freeze<Observer<T>>({

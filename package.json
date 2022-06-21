@@ -1,8 +1,12 @@
 {
   "name": "@ts-awesome/observable",
   "version": "0.0.0",
-  "description": "",
+  "description": "Typescript friendly observable implementation of tc39/proposal-observables",
   "main": "dist/index.js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ts-awesome/observable"
+  },
   "scripts": {
     "build": "tsc",
     "lint": "eslint \"src/**/*.ts\"",

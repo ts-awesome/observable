@@ -62,7 +62,7 @@ let subscription = commandKeys(inputElement).subscribe({
 
 ## Subject
 
-Is a special observa
+Is a special observable with shared state.
 
 # License
 May be freely distributed under the [MIT license](https://opensource.org/licenses/MIT).
